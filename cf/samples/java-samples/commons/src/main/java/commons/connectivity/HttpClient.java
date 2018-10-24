@@ -1,24 +1,18 @@
 package commons.connectivity;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Base64;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-
 import com.google.gson.JsonSyntaxException;
-
 import commons.utils.Console;
 import commons.utils.Constants;
 import commons.utils.FileUtil;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.reflect.Array;
+import java.net.*;
+import java.util.Base64;
 
 public class HttpClient
 extends AbstractClient {
@@ -93,12 +87,23 @@ extends AbstractClient {
 
 	public <T> T doPost(T payload, Class<T> clazz)
 	throws IOException {
-		try {
-			String request = jsonParser.toJson(payload, clazz);
-			return jsonParser.fromJson(doPostAsString(request), clazz);
+        String request = jsonParser.toJson(payload, clazz);
+        String response = doPostAsString(request);
+        try {
+            return jsonParser.fromJson(response, clazz);
 		}
 		catch (JsonSyntaxException e) {
-			throw new IOException("Unexpected JSON format returned", e);
+            Class<? extends T[]> arrayOfTClass = (Class<? extends T[]>) Array.newInstance(clazz, 0).getClass();
+
+            try {
+                T[] t = jsonParser.fromJson(response, arrayOfTClass);
+                if (t.length > 0) {
+                    return t[0];
+                }
+                return null;
+            }catch (JsonSyntaxException tableExc){
+                throw new IOException("Unexpected JSON format returned", e);
+            }
 		}
 	}
 
