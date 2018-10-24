@@ -1,163 +1,177 @@
 package commons;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.Properties;
-
 import commons.connectivity.ProxySelector;
 import commons.model.GatewayProtocol;
 import commons.utils.Console;
 import commons.utils.Constants;
 import commons.utils.FileUtil;
+import commons.utils.SecurityUtil;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Properties;
 
 /**
  * An abstraction over all sample applications.
  */
 public abstract class AbstractSample {
 
-	private static final String PRODUCT_TITLE = "SAP Internet of Things for the Cloud Foundry Environment";
+    public static final String IOT_HOST = "iot.host";
+    public static final String IOT_USER = "iot.user";
+    public static final String IOT_PASSWORD = "iot.password";
+    public static final String DEVICE_ID = "device.id";
+    public static final String SENSOR_ID = "sensor.id";
+    public static final String SENSOR_TYPE_ID = "sensor.type.id";
+    public static final String CAPABILITY_ID = "capability.id";
+    public static final String GATEWAY_PROTOCOL_ID = "gateway.protocol.id";
+    public static final String PROXY_PORT = "proxy.port";
+    public static final String PROXY_HOST = "proxy.host";
+    private static final String PRODUCT_TITLE = "SAP Internet of Things for the Cloud Foundry Environment";
+    private static final String CONFIGURATIONS_FILE_NAME = "sample.properties";
+    protected Properties properties;
 
-	private static final String CONFIGURATIONS_FILE_NAME = "sample.properties";
+    public AbstractSample() {
+        Console.printNewLine();
+        Console.printText(PRODUCT_TITLE);
+        Console.printText(getDescription());
+        Console.printNewLine();
 
-	public static final String IOT_HOST = "iot.host";
-	public static final String IOT_USER = "iot.user";
-	public static final String IOT_PASSWORD = "iot.password";
-	public static final String DEVICE_ID = "device.id";
-	public static final String SENSOR_ID = "sensor.id";
-	public static final String SENSOR_TYPE_ID = "sensor.type.id";
-	public static final String CAPABILITY_ID = "capability.id";
-	public static final String GATEWAY_PROTOCOL_ID = "gateway.protocol.id";
-	public static final String PROXY_PORT = "proxy.port";
-	public static final String PROXY_HOST = "proxy.host";
+        init();
+    }
 
-	protected Properties properties;
+    /**
+     * Gets a description of the sample application.
+     */
+    protected abstract String getDescription();
 
-	public AbstractSample() {
-		Console.printNewLine();
-		Console.printText(PRODUCT_TITLE);
-		Console.printText(getDescription());
-		Console.printNewLine();
+    /**
+     * Runs the logic of the sample application.
+     */
+    protected abstract void run()
+            throws SampleException;
 
-		init();
-	}
+    /**
+     * Prompts the user for missing configuration properties.
+     */
+    protected void promptProperties() {
+        Console console = Console.getInstance();
 
-	/**
-	 * Gets a description of the sample application.
-	 */
-	protected abstract String getDescription();
+        String host = properties.getProperty(IOT_HOST);
+        host = console.awaitNextLine(host, "Hostname (e.g. 'test.cp.iot.sap'): ");
+        properties.setProperty(IOT_HOST, host);
 
-	/**
-	 * Runs the logic of the sample application.
-	 */
-	protected abstract void run()
-	throws SampleException;
+        String user = properties.getProperty(IOT_USER);
+        user = console.awaitNextLine(user, "Username (e.g. 'root'): ");
+        properties.setProperty(IOT_USER, user);
 
-	/**
-	 * Prompts the user for missing configuration properties.
-	 */
-	protected void promptProperties() {
-		Console console = Console.getInstance();
+        String gatewayType = properties.getProperty(GATEWAY_PROTOCOL_ID);
+        gatewayType = console.awaitNextLine(gatewayType,
+                "Gateway Protocol ID ('rest' or 'mqtt'): ");
+        properties.setProperty(GATEWAY_PROTOCOL_ID,
+                GatewayProtocol.fromValue(gatewayType).getValue());
 
-		String host = properties.getProperty(IOT_HOST);
-		host = console.awaitNextLine(host, "Hostname (e.g. 'test.cp.iot.sap'): ");
-		properties.setProperty(IOT_HOST, host);
+        String deviceId = properties.getProperty(DEVICE_ID);
+        deviceId = console.awaitNextLine(deviceId, "Device ID (e.g. '100'): ");
+        properties.setProperty(DEVICE_ID, deviceId);
 
-		String user = properties.getProperty(IOT_USER);
-		user = console.awaitNextLine(user, "Username (e.g. 'root'): ");
-		properties.setProperty(IOT_USER, user);
+        String sensorId = properties.getProperty(SENSOR_ID);
+        sensorId = console.awaitNextLine(sensorId, "Sensor ID (e.g. '100'): ");
+        properties.setProperty(SENSOR_ID, sensorId);
 
-		String gatewayType = properties.getProperty(GATEWAY_PROTOCOL_ID);
-		gatewayType = console.awaitNextLine(gatewayType,
-			"Gateway Protocol ID ('rest' or 'mqtt'): ");
-		properties.setProperty(GATEWAY_PROTOCOL_ID,
-			GatewayProtocol.fromValue(gatewayType).getValue());
+        String proxyHost = properties.getProperty(PROXY_HOST);
+        if (proxyHost == null) {
+            proxyHost = console.nextLine("Proxy Host (e.g. 'proxy' or leave empty): ");
+            properties.setProperty(PROXY_HOST, proxyHost);
+        }
 
-		String deviceId = properties.getProperty(DEVICE_ID);
-		deviceId = console.awaitNextLine(deviceId, "Device ID (e.g. '100'): ");
-		properties.setProperty(DEVICE_ID, deviceId);
+        String proxyPort = properties.getProperty(PROXY_PORT);
+        if (proxyPort == null) {
+            proxyPort = console.nextLine("Proxy Port (e.g. '8080' or leave empty): ");
+            properties.setProperty(PROXY_PORT, proxyPort);
+        }
 
-		String sensorId = properties.getProperty(SENSOR_ID);
-		sensorId = console.awaitNextLine(sensorId, "Sensor ID (e.g. '100'): ");
-		properties.setProperty(SENSOR_ID, sensorId);
+        String password = properties.getProperty(IOT_PASSWORD);
+        if (password == null) {
+            password = console.nextPassword("Password for your user: ");
+            properties.setProperty(IOT_PASSWORD, password);
+        }
 
-		String proxyHost = properties.getProperty(PROXY_HOST);
-		if (proxyHost == null) {
-			proxyHost = console.nextLine("Proxy Host (e.g. 'proxy' or leave empty): ");
-			properties.setProperty(PROXY_HOST, proxyHost);
-		}
+        if (properties.getProperty("insecure") != null) {
+            HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
+            try {
+                SSLContext sc = SSLContext.getInstance("TLS");
+                sc.init(null, SecurityUtil.getTrustManagers(), new java.security.SecureRandom());
 
-		String proxyPort = properties.getProperty(PROXY_PORT);
-		if (proxyPort == null) {
-			proxyPort = console.nextLine("Proxy Port (e.g. '8080' or leave empty): ");
-			properties.setProperty(PROXY_PORT, proxyPort);
-		}
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
-		String password = properties.getProperty(IOT_PASSWORD);
-		password = console.nextPassword("Password for your user: ");
-		properties.setProperty(IOT_PASSWORD, password);
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
-		console.close();
-	};
+        console.close();
+    }
 
-	/**
-	 * Reads the configuration properties from the file located in the same directory to JAR
-	 * archive. Sticks to the empty properties collection if the configuration file does not exist.
-	 */
-	private void init() {
-		File jar = new File(
-			AbstractSample.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-		String path = jar.getParentFile().getAbsolutePath()
-			.concat(System.getProperty("file.separator")).concat(CONFIGURATIONS_FILE_NAME);
-		try {
-			path = URLDecoder.decode(path, Constants.DEFAULT_ENCODING.name());
-		}
-		catch (UnsupportedEncodingException e) {
-			Console.printWarning("Unable to decode config file path.");
-		}
-		File config = new File(path);
+    /**
+     * Reads the configuration properties from the file located in the same directory to JAR
+     * archive. Sticks to the empty properties collection if the configuration file does not exist.
+     */
+    private void init() {
+        File jar = new File(
+                AbstractSample.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+        String path = jar.getParentFile().getAbsolutePath()
+                .concat(System.getProperty("file.separator")).concat(CONFIGURATIONS_FILE_NAME);
+        try {
+            path = URLDecoder.decode(path, Constants.DEFAULT_ENCODING.name());
+        } catch (UnsupportedEncodingException e) {
+            Console.printWarning("Unable to decode config file path.");
+        }
+        File config = new File(path);
 
-		properties = new Properties();
+        properties = new Properties();
 
-		try {
-			if (config.exists()) {
-				properties = FileUtil.readProperties(new FileInputStream(config));
-			}
-		}
-		catch (IOException e) {
-			// do nothing
-		}
-		finally {
-			promptProperties();
-			printProperties();
-		}
+        try {
+            if (config.exists()) {
+                properties = FileUtil.readProperties(new FileInputStream(config));
+            }
+        } catch (IOException e) {
+            // do nothing
+        } finally {
+            promptProperties();
+            printProperties();
+        }
 
-		setProxy();
-	}
+        setProxy();
+    }
 
-	/**
-	 * Prints out the resulting configuration properties to the console. Skips user password and
-	 * properties having empty values.
-	 */
-	private void printProperties() {
-		Console.printNewLine();
-		Console.printText("Properties:");
-		for (Object key : properties.keySet()) {
-			if (IOT_PASSWORD.equals(key) || properties.get(key).toString().trim().isEmpty()) {
-				continue;
-			}
-			Console.printProperty(key, properties.get(key));
-		}
-		Console.printNewLine();
-	}
+    /**
+     * Prints out the resulting configuration properties to the console. Skips user password and
+     * properties having empty values.
+     */
+    private void printProperties() {
+        Console.printNewLine();
+        Console.printText("Properties:");
+        for (Object key : properties.keySet()) {
+            if (IOT_PASSWORD.equals(key) || properties.get(key).toString().trim().isEmpty()) {
+                continue;
+            }
+            Console.printProperty(key, properties.get(key));
+        }
+        Console.printNewLine();
+    }
 
-	private void setProxy() {
-		String proxyHost = properties.getProperty(PROXY_HOST);
-		String proxyPort = properties.getProperty(PROXY_PORT);
+    private void setProxy() {
+        String proxyHost = properties.getProperty(PROXY_HOST);
+        String proxyPort = properties.getProperty(PROXY_PORT);
 
-		ProxySelector.setProxy(proxyHost, proxyPort);
-	}
+        ProxySelector.setProxy(proxyHost, proxyPort);
+    }
 
 }

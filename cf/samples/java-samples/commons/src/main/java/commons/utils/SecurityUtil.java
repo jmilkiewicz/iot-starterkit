@@ -1,36 +1,24 @@
 package commons.utils;
 
+import commons.model.Authentication;
+import commons.model.Device;
+
+import javax.crypto.Cipher;
+import javax.crypto.EncryptedPrivateKeyInfo;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.net.ssl.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.AlgorithmParameters;
-import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.PrivateKey;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.spec.KeySpec;
 import java.util.Base64;
-
-import javax.crypto.Cipher;
-import javax.crypto.EncryptedPrivateKeyInfo;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
-import commons.model.Authentication;
-import commons.model.Device;
 
 public class SecurityUtil {
 
@@ -171,7 +159,7 @@ public class SecurityUtil {
 	 * properties.setProperty("com.ibm.ssl.trustStore","my.cacerts");
 	 * options.setSSLProperties(properties);
 	 */
-	private static TrustManager[] getTrustManagers() {
+	public static TrustManager[] getTrustManagers() {
 		return new TrustManager[] { new X509TrustManager() {
 
 			@Override
