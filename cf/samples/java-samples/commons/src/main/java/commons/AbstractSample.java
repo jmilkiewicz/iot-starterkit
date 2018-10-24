@@ -103,7 +103,7 @@ public abstract class AbstractSample {
             properties.setProperty(IOT_PASSWORD, password);
         }
 
-        if (properties.getProperty("insecure") != null) {
+        if (properties.getProperty("insecure") != null ||  !console.nextLine("Insecure: ").equalsIgnoreCase("no")) {
             HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
             try {
                 SSLContext sc = SSLContext.getInstance("TLS");
