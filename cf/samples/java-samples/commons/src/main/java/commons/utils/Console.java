@@ -75,6 +75,16 @@ public class Console {
 		System.out.println(String.format("[ERROR] %1$s", message));
 	}
 
+	public static void printError(Exception e) {
+        Throwable cause = e.getCause();
+        if(cause != e){
+            System.out.println(String.format("[ERROR] %1$s because of %2$s ", e.getMessage(), cause.getMessage()));
+        }else{
+            printError(e.getMessage());
+        }
+
+    }
+
 	public static void printWarning(String message) {
 		printNewLine();
 		System.out.println(String.format("[WARN] %1$s", message));

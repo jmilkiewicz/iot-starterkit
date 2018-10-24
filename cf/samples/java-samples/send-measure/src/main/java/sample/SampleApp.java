@@ -1,29 +1,22 @@
 package sample;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.SSLSocketFactory;
-
 import commons.AbstractCoreServiceSample;
 import commons.SampleException;
 import commons.api.GatewayCloud;
 import commons.api.GatewayCloudHttp;
 import commons.api.GatewayCloudMqtt;
-import commons.model.Authentication;
-import commons.model.Capability;
-import commons.model.Device;
-import commons.model.Gateway;
-import commons.model.GatewayProtocol;
-import commons.model.Sensor;
-import commons.model.SensorType;
+import commons.model.*;
 import commons.model.gateway.Measure;
 import commons.utils.Console;
 import commons.utils.EntityFactory;
 import commons.utils.SecurityUtil;
+
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class SampleApp
 extends AbstractCoreServiceSample {
@@ -119,7 +112,7 @@ extends AbstractCoreServiceSample {
 					gatewayCloud.sendMeasure(measure);
 				}
 				catch (IOException e) {
-					Console.printError(e.getMessage());
+					Console.printError(e);
 				}
 				finally {
 					Console.printSeparator();
